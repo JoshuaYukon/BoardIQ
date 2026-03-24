@@ -1,0 +1,36 @@
+# Ignore bundler config
+/.bundle
+
+# Ignore the default SQLite database
+/db/*.sqlite3
+/db/*.sqlite3-journal
+/db/*.sqlite3-shm
+/db/*.sqlite3-wal
+
+# Ignore all logfiles and tempfiles
+/log/*
+/tmp/*
+!/log/.keep
+!/tmp/.keep
+
+# Ignore uploaded files in development
+/storage/*
+!/storage/.keep
+
+# Ignore master key and credentials
+/config/master.key
+/config/credentials.yml.enc
+
+# Ignore environment variables (contains SMTP password, API keys)
+.env
+
+# Ignore node modules and yarn files
+/node_modules
+yarn-error.log
+
+# Ignore coverage reports
+/coverage
+
+# OS files
+.DS_Store
+Thumbs.db

@@ -1,0 +1,32 @@
+<div class="page-header">
+  <h1>Issues</h1>
+</div>
+
+<div style="background: white; border: 1.5px solid var(--wire); border-radius: 2px; padding: 16px;">
+  <% if @issues.any? %>
+    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 1px; background: var(--wire);">
+      <div style="background: #faf8f4; padding: 12px; font-weight: 600; font-size: 10px; text-transform: uppercase;">Title</div>
+      <div style="background: #faf8f4; padding: 12px; font-weight: 600; font-size: 10px; text-transform: uppercase;">Board</div>
+      <div style="background: #faf8f4; padding: 12px; font-weight: 600; font-size: 10px; text-transform: uppercase;">Status</div>
+      <div style="background: #faf8f4; padding: 12px; font-weight: 600; font-size: 10px; text-transform: uppercase;">Actions</div>
+
+      <% @issues.each do |issue| %>
+        <div style="background: white; padding: 12px; border-top: 1px solid var(--wire);"><%= link_to issue.title, issue_path(issue), class: "link" %></div>
+        <div style="background: white; padding: 12px; border-top: 1px solid var(--wire);"><%= link_to issue.board.name, board_path(issue.board), class: "link" %></div>
+        <div style="background: white; padding: 12px; border-top: 1px solid var(--wire);">
+          <% status_name = case issue.status
+            when Issue::STATUSES[:todo] then 'Todo'
+            when Issue::STATUSES[:in_progress] then 'In Progress'
+            when Issue::STATUSES[:done] then 'Done'
+          end %>
+          <span class="stat-chip" style="background: var(--accent); margin: 0;"><%= status_name %></span>
+        </div>
+        <div style="background: white; padding: 12px; border-top: 1px solid var(--wire);">
+          <%= link_to "View", issue_path(issue), class: "btn", style: "padding: 4px 8px; font-size: 9px;" %>
+        </div>
+      <% end %>
+    </div>
+  <% else %>
+    <p class="text-muted">No issues yet.</p>
+  <% end %>
+</div>

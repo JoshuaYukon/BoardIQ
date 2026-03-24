@@ -1,0 +1,30 @@
+<div class="page-header">
+  <h1>Projects</h1>
+  <div class="page-header-actions">
+    <%= link_to "New Project", new_project_path, class: "btn accent" %>
+  </div>
+</div>
+
+<div class="board-grid">
+  <% @projects.each do |project| %>
+    <% active_sprint = project.sprints.find(&:active?) %>
+    <div class="board-card" onclick="window.location.href='<%= project_path(project) %>'">
+      <div class="board-card-name" style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;">
+        <span><%= project.name %></span>
+        <% if active_sprint %>
+          <span class="sprint-badge active" style="font-size: 9px; white-space: nowrap;">Active Sprint</span>
+        <% end %>
+      </div>
+      <div class="board-card-meta"><%= truncate(project.description, length: 60) %></div>
+      <div class="board-card-stats">
+        <span class="stat-chip todo"><%= project.boards.count %> Board<%= "s" if project.boards.count != 1 %></span>
+        <span class="stat-chip"><%= project.sprints.count %> Sprint<%= "s" if project.sprints.count != 1 %></span>
+      </div>
+    </div>
+  <% end %>
+
+  <div class="board-card new-board" onclick="window.location.href='<%= new_project_path %>'">
+    <div class="new-board-icon">+</div>
+    <div class="new-board-text">New Project</div>
+  </div>
+</div>

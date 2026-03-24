@@ -1,0 +1,181 @@
+<div class="page-header">
+  <div>
+    <h1><%= @sprint.name %></h1>
+    <div class="board-breadcrumb" style="margin-top: 8px;">
+      <%= link_to @project.name, project_path(@project) %>
+      <span style="color: var(--wire-dark);">/</span>
+      <%= link_to "Sprints", project_sprints_path(@project) %>
+      <span style="color: var(--wire-dark);">/</span>
+      <span style="color: var(--ink); font-weight: 600;"><%= @sprint.name %></span>
+    </div>
+  </div>
+  <div class="page-header-actions">
+    <span class="sprint-badge <%= @sprint.status %>" style="align-self: center;"><%= @sprint.status.titleize %></span>
+    <% if @sprint.planning? %>
+      <%= link_to "Start Sprint", start_sprint_path(@sprint), data: { turbo_method: :patch, turbo_confirm: "Start this sprint?" }, class: "btn accent" %>
+    <% elsif @sprint.active? %>
+      <%= link_to "Complete Sprint", complete_sprint_path(@sprint), data: { turbo_method: :patch, turbo_confirm: "Complete sprint \"#{@sprint.name}\"? It has #{@sprint.issues.count} issue(s). This will generate a report." }, class: "btn" %>
+    <% end %>
+    <%= link_to "Edit", edit_sprint_path(@sprint), class: "btn" %>
+    <%= link_to "Delete", sprint_path(@sprint), data: { turbo_method: :delete, turbo_confirm: "Delete this sprint?" }, class: "btn danger" %>
+  </div>
+</div>
+
+<% if @sprint.goal.present? %>
+  <div style="background: var(--paper2); border-left: 3px solid var(--blue); padding: 12px 16px; margin-bottom: 24px; font-size: 11px;">
+    <strong style="font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--wire-dark);">Sprint Goal</strong>
+    <p style="margin-top: 4px;"><%= @sprint.goal %></p>
+  </div>
+<% end %>
+
+<div style="display: flex; gap: 24px; margin-bottom: 24px; font-size: 11px;">
+  <% if @sprint.start_date %>
+    <span><strong>Start:</strong> <%= @sprint.start_date.strftime("%b %d, %Y") %></span>
+    <span><strong>End:</strong> <%= @sprint.end_date&.strftime("%b %d, %Y") || "—" %></span>
+  <% end %>
+  <span><strong><%= @sprint.issues.count %></strong> issues</span>
+</div>
+
+<% if @sprint.completed? && @completed_issues %>
+
+  <%# ── COMPLETION REPORT ── %>
+  <div style="background: var(--paper2); border: 1.5px solid var(--wire); border-radius: 3px; padding: 24px; margin-bottom: 32px;">
+    <div style="font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--wire-dark); margin-bottom: 16px;">Sprint Report</div>
+
+    <% total = @issues.count %>
+    <% done  = @completed_issues.count %>
+    <% pct   = total > 0 ? (done * 100.0 / total).round : 0 %>
+
+    <div style="display: flex; gap: 32px; margin-bottom: 20px;">
+      <div style="text-align: center;">
+        <div style="font-size: 28px; font-weight: 700; color: var(--ink);"><%= total %></div>
+        <div style="font-size: 10px; color: var(--wire-dark);">Total Issues</div>
+      </div>
+      <div style="text-align: center;">
+        <div style="font-size: 28px; font-weight: 700; color: #22c55e;"><%= done %></div>
+        <div style="font-size: 10px; color: var(--wire-dark);">Completed</div>
+      </div>
+      <div style="text-align: center;">
+        <div style="font-size: 28px; font-weight: 700; color: #ef4444;"><%= total - done %></div>
+        <div style="font-size: 10px; color: var(--wire-dark);">Incomplete</div>
+      </div>
+      <div style="text-align: center;">
+        <div style="font-size: 28px; font-weight: 700; color: var(--ink);"><%= pct %>%</div>
+        <div style="font-size: 10px; color: var(--wire-dark);">Completion Rate</div>
+      </div>
+    </div>
+
+    <div style="height: 8px; background: var(--wire); border-radius: 4px; overflow: hidden; margin-bottom: 20px;">
+      <div style="height: 100%; width: <%= pct %>%; background: #22c55e; border-radius: 4px; transition: width 0.4s;"></div>
+    </div>
+
+    <% if @sprint.start_date && @sprint.end_date %>
+      <% days = (@sprint.end_date - @sprint.start_date).to_i %>
+      <div style="font-size: 11px; color: var(--wire-dark);">
+        Duration: <strong><%= days %> day<%= days == 1 ? "" : "s" %></strong>
+        (<%= @sprint.start_date.strftime("%b %d") %> – <%= @sprint.end_date.strftime("%b %d, %Y") %>)
+      </div>
+    <% end %>
+  </div>
+
+  <% if @completed_issues.any? %>
+    <div style="margin-bottom: 24px;">
+      <div style="font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #22c55e; margin-bottom: 10px;">
+        Completed (<%= @completed_issues.count %>)
+      </div>
+      <div style="border: 1.5px solid var(--wire); border-radius: 2px; overflow: hidden;">
+        <% @completed_issues.each do |issue| %>
+          <div style="display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-bottom: 1px solid var(--wire); font-size: 11px;">
+            <span style="color: #22c55e; font-size: 13px;">✓</span>
+            <%= link_to issue.title, issue_path(issue), class: "link", style: "flex: 1;" %>
+            <span style="color: var(--wire-dark);"><%= issue.user&.name || "—" %></span>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+
+  <% if @incomplete_issues.any? %>
+    <div style="margin-bottom: 24px;">
+      <div style="font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #ef4444; margin-bottom: 10px;">
+        Not Completed (<%= @incomplete_issues.count %>)
+      </div>
+      <div style="border: 1.5px solid var(--wire); border-radius: 2px; overflow: hidden;">
+        <% @incomplete_issues.each do |issue| %>
+          <div style="display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-bottom: 1px solid var(--wire); font-size: 11px;">
+            <span style="color: #ef4444; font-size: 13px;">○</span>
+            <%= link_to issue.title, issue_path(issue), class: "link", style: "flex: 1;" %>
+            <% if issue.board_state %>
+              <span class="sprint-badge" style="background: <%= issue.board_state.color %>;"><%= issue.board_state.name %></span>
+            <% end %>
+            <span style="color: var(--wire-dark);"><%= issue.user&.name || "—" %></span>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- AI Sprint Summary -->
+  <div data-controller="ai" style="margin-bottom: 24px;">
+    <button class="ai-btn"
+            data-action="click->ai#request"
+            data-url="/ai/summarize_sprint"
+            data-params='{"sprint_id": <%= @sprint.id %>}'>
+      ✦ AI Sprint Summary
+    </button>
+    <div class="ai-panel" style="display: none; margin-top: 12px;">
+      <div class="ai-panel-header">✦ Sprint Summary</div>
+      <div class="ai-response" data-ai-target="result"></div>
+    </div>
+  </div>
+
+<% elsif @issues.empty? %>
+  <div style="padding: 40px; text-align: center; border: 1.5px dashed var(--wire); border-radius: 3px;">
+    <p style="color: var(--wire-dark); font-size: 12px; margin-bottom: 12px;">No issues have been added to this sprint yet.</p>
+    <%= link_to "Edit Sprint to Add Issues", edit_sprint_path(@sprint), class: "btn accent" %>
+  </div>
+
+<% else %>
+  <!-- Active/Planning sprint issue list -->
+  <div data-controller="ai" style="margin-bottom: 24px;">
+    <button class="ai-btn"
+            data-action="click->ai#request"
+            data-url="/ai/summarize_sprint"
+            data-params='{"sprint_id": <%= @sprint.id %>}'>
+      ✦ AI Sprint Summary
+    </button>
+    <div class="ai-panel" style="display: none; margin-top: 12px;">
+      <div class="ai-panel-header">✦ Sprint Summary</div>
+      <div class="ai-response" data-ai-target="result"></div>
+    </div>
+  </div>
+
+  <div style="border: 1.5px solid var(--wire); border-radius: 2px; overflow: hidden;">
+    <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+      <thead>
+        <tr style="background: var(--paper2); border-bottom: 1.5px solid var(--wire);">
+          <th style="padding: 10px 14px; text-align: left; font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase;">Issue</th>
+          <th style="padding: 10px 14px; text-align: left; font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase;">Status</th>
+          <th style="padding: 10px 14px; text-align: left; font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase;">Assignee</th>
+          <th style="padding: 10px 14px; text-align: left; font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase;">Board</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @issues.each do |issue| %>
+          <tr style="border-bottom: 1px solid var(--wire);">
+            <td style="padding: 10px 14px;"><%= link_to issue.title, issue_path(issue), class: "link" %></td>
+            <td style="padding: 10px 14px;">
+              <% if issue.board_state %>
+                <span class="sprint-badge" style="background: <%= issue.board_state.color %>;"><%= issue.board_state.name %></span>
+              <% else %>
+                <span class="text-muted">—</span>
+              <% end %>
+            </td>
+            <td style="padding: 10px 14px;"><%= issue.user&.name || "—" %></td>
+            <td style="padding: 10px 14px;"><%= link_to issue.board.name, board_path(issue.board), class: "link" %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+<% end %>

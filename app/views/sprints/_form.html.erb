@@ -1,0 +1,66 @@
+<%= form_with(model: [@project, sprint], local: true) do |form| %>
+  <% if sprint.errors.any? %>
+    <div class="alert">
+      <% sprint.errors.full_messages.each do |msg| %>
+        <div><%= msg %></div>
+      <% end %>
+    </div>
+  <% end %>
+
+  <div class="form-group">
+    <%= form.label :name, "Sprint Name" %>
+    <%= form.text_field :name, placeholder: "e.g. Sprint 1" %>
+  </div>
+
+  <div class="form-group">
+    <%= form.label :goal, "Sprint Goal" %>
+    <%= form.text_area :goal, placeholder: "What does this sprint aim to deliver?", rows: 3 %>
+  </div>
+
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+    <div class="form-group">
+      <%= form.label :start_date, "Start Date" %>
+      <%= form.date_field :start_date %>
+    </div>
+    <div class="form-group">
+      <%= form.label :end_date, "End Date" %>
+      <%= form.date_field :end_date %>
+    </div>
+  </div>
+
+  <% if @unassigned_issues.any? %>
+    <div class="form-group">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+        <label style="margin: 0;">Issues to Include</label>
+        <% if @preselected_issue_ids&.any? %>
+          <span style="font-size: 10px; color: var(--wire-dark);">Board issues pre-selected</span>
+        <% end %>
+      </div>
+      <div style="max-height: 240px; overflow-y: auto; border: 1.5px solid var(--wire); border-radius: 2px; background: #faf8f4;">
+        <% @unassigned_issues.each do |issue| %>
+          <% preselected = @preselected_issue_ids&.include?(issue.id) || sprint.issues.include?(issue) %>
+          <label style="display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--wire); cursor: pointer; font-size: 11px; <%= preselected ? 'background: var(--paper2);' : '' %>">
+            <input type="checkbox" name="issue_ids[]" value="<%= issue.id %>"
+                   <%= 'checked' if preselected %>
+                   style="width: 14px; height: 14px;">
+            <span style="flex: 1;"><%= issue.title %></span>
+            <% if issue.board_state %>
+              <span class="sprint-badge" style="background: <%= issue.board_state.color %>;"><%= issue.board_state.name %></span>
+            <% else %>
+              <span style="font-size: 10px; color: var(--wire-dark);">Backlog</span>
+            <% end %>
+            <span style="font-size: 10px; color: var(--wire-dark); margin-left: 4px;"><%= issue.board.name %></span>
+          </label>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+
+  <%= hidden_field_tag :board_id, params[:board_id] if params[:board_id].present? %>
+
+  <div class="form-actions">
+    <% cancel_path = params[:board_id].present? ? board_path(params[:board_id]) : project_sprints_path(@project) %>
+    <%= link_to "Cancel", cancel_path, class: "btn" %>
+    <%= form.submit sprint.new_record? ? "Create Sprint" : "Update Sprint", class: "btn primary" %>
+  </div>
+<% end %>

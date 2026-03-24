@@ -1,0 +1,26 @@
+<div class="page-header">
+  <h1><%= @board.name %> - Board States</h1>
+  <p>Customize the states for this board</p>
+</div>
+
+<div style="max-width: 600px; margin: 40px auto;">
+  <div style="margin-bottom: 40px;">
+    <%= link_to '+ Add State', new_board_board_state_path(@board), class: 'btn btn-primary' %>
+  </div>
+
+  <div class="states-list">
+    <% @board.board_states.ordered.each do |state| %>
+      <div class="state-card" style="padding: 16px; margin-bottom: 12px; background: var(--ghost); border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div class="kanban-status-dot" style="width: 16px; height: 16px; border-radius: 50%; background: <%= state.color %>; flex-shrink: 0;"></div>
+          <span><strong><%= state.name %></strong></span>
+        </div>
+
+        <div style="display: flex; gap: 8px;">
+          <%= link_to 'Edit', edit_board_board_state_path(@board, state), class: 'btn btn-sm' %>
+          <%= link_to 'Delete', board_board_state_path(@board, state), data: { turbo_method: :delete, turbo_confirm: 'Sure?' }, class: 'btn btn-sm btn-danger' %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+</div>

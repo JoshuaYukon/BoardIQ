@@ -1,0 +1,60 @@
+<div class="page-header">
+  <h1>Account Settings</h1>
+  <p>Manage your account information and preferences</p>
+</div>
+
+<div style="max-width: 600px; margin: 40px auto; display: grid; grid-template-columns: 1fr 1fr; gap: 40px;">
+  <div>
+    <h3 style="margin-bottom: 20px;">Account Information</h3>
+    <form action="<%= user_path(current_user) %>" method="post" class="form">
+      <input type="hidden" name="authenticity_token" value="<%= form_authenticity_token %>">
+      <input type="hidden" name="_method" value="patch">
+
+      <div class="form-group">
+        <label for="user_name">Name</label>
+        <input type="text" id="user_name" name="user[name]" value="<%= current_user.name %>" class="form-input">
+      </div>
+
+      <div class="form-group">
+        <label for="user_email">Email</label>
+        <input type="email" id="user_email" name="user[email]" value="<%= current_user.email %>" class="form-input">
+      </div>
+
+      <button type="submit" class="btn btn-primary">Save Changes</button>
+    </form>
+  </div>
+
+  <div>
+    <h3 style="margin-bottom: 20px;">Change Password</h3>
+    <form action="<%= user_path(current_user) %>" method="post" class="form">
+      <input type="hidden" name="authenticity_token" value="<%= form_authenticity_token %>">
+      <input type="hidden" name="_method" value="patch">
+
+      <div class="form-group">
+        <label for="user_password">New Password</label>
+        <input type="password" id="user_password" name="user[password]" class="form-input">
+      </div>
+
+      <div class="form-group">
+        <label for="user_password_confirmation">Confirm Password</label>
+        <input type="password" id="user_password_confirmation" name="user[password_confirmation]" class="form-input">
+      </div>
+
+      <button type="submit" class="btn btn-primary">Update Password</button>
+    </form>
+  </div>
+</div>
+
+<div style="max-width: 600px; margin: 60px auto;">
+  <h3 style="margin-bottom: 20px; color: #c0392b;">Danger Zone</h3>
+  <div style="padding: 20px; border: 1px solid #c0392b; border-radius: 8px;">
+    <p>Deleting your account cannot be undone. All your projects and data will be permanently removed.</p>
+    <form action="<%= user_path(current_user) %>" method="post" style="margin-top: 20px;">
+      <input type="hidden" name="authenticity_token" value="<%= form_authenticity_token %>">
+      <input type="hidden" name="_method" value="delete">
+      <button type="submit" class="btn btn-danger" onclick="return confirm('Are you sure you want to delete your account? This cannot be undone.');">
+        Delete Account
+      </button>
+    </form>
+  </div>
+</div>

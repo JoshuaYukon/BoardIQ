@@ -1,0 +1,28 @@
+<div class="page-header">
+  <h1>Sign In</h1>
+  <p>Access your BoardIQ account</p>
+</div>
+
+<div style="max-width: 400px; margin: 40px auto;">
+  <form action="<%= sessions_path %>" method="post" class="form">
+    <input type="hidden" name="authenticity_token" value="<%= form_authenticity_token %>">
+    
+    <div class="form-group">
+      <label for="email">Email</label>
+      <input type="email" id="email" name="email" required class="form-input">
+    </div>
+
+    <div class="form-group">
+      <label for="password">Password</label>
+      <input type="password" id="password" name="password" required class="form-input">
+    </div>
+
+    <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 20px;">
+      Sign In
+    </button>
+  </form>
+
+  <p style="text-align: center; margin-top: 20px; font-size: 14px; color: #666;">
+    Don't have an account? <%= link_to "Create one here", new_user_path %>
+  </p>
+</div>

@@ -1,0 +1,19 @@
+<div class="page-header">
+  <h1>Notifications</h1>
+</div>
+
+<% if @notifications.empty? %>
+  <p class="text-muted" style="text-align: center; padding: 40px;">You're all caught up!</p>
+<% else %>
+  <div style="max-width: 640px;">
+    <% @notifications.each do |notif| %>
+      <div class="notif-item <%= 'unread' unless notif.read %>">
+        <div class="activity-dot" style="margin-top: 6px; flex-shrink: 0;"></div>
+        <div style="flex: 1;">
+          <div><%= notif.message %></div>
+          <div class="activity-time"><%= time_ago_in_words(notif.created_at) %> ago</div>
+        </div>
+      </div>
+    <% end %>
+  </div>
+<% end %>

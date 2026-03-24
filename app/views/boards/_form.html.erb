@@ -1,0 +1,24 @@
+<%= form_with(model: board, local: true) do |form| %>
+  <% if board.errors.any? %>
+    <div class="alert">
+      <h3><%= pluralize(board.errors.count, "error") %> prohibited this board from being saved:</h3>
+      <ul style="margin-top: 8px;">
+      <% board.errors.full_messages.each do |message| %>
+        <li><%= message %></li>
+      <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="form-group">
+    <%= form.label :name, "Board Name" %>
+    <%= form.text_field :name %>
+  </div>
+
+  <%= form.hidden_field :project_id, value: board.project_id || params[:project_id] %>
+
+  <div class="form-actions">
+    <%= link_to "Cancel", @project.present? ? project_path(@project) : projects_path, class: "btn" %>
+    <%= form.submit form.object.new_record? ? "Create Board" : "Update Board", class: "btn primary" %>
+  </div>
+<% end %>

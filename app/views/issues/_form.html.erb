@@ -1,0 +1,160 @@
+<%= form_with(model: issue, local: true, multipart: true) do |form| %>
+  <% if issue.errors.any? %>
+    <div class="alert">
+      <h3><%= pluralize(issue.errors.count, "error") %> prohibited this issue from being saved:</h3>
+      <ul style="margin-top: 8px;">
+        <% issue.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="form-group">
+    <%= form.label :title, "Issue Title" %>
+    <%= form.text_field :title %>
+  </div>
+
+  <div class="form-group" data-controller="ai">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+      <%= form.label :description, "Description" %>
+      <button type="button" class="ai-btn" style="font-size: 9px; padding: 4px 8px;"
+              data-action="click->ai#request"
+              data-url="/ai/generate_description"
+              id="ai-desc-btn">
+        ✦ Generate with AI
+      </button>
+    </div>
+    <%= form.text_area :description, id: "issue-description" %>
+    <div class="ai-panel" style="display: none; margin-top: 8px;">
+      <div class="ai-panel-header">✦ AI Suggestion — click to use</div>
+      <div class="ai-response" data-ai-target="result"
+           style="cursor: pointer;"
+           onclick="document.getElementById('issue-description').value = this.textContent; this.closest('.ai-panel').style.display='none'"></div>
+    </div>
+  </div>
+
+  <% board = Board.find_by(id: issue.board_id || params[:board_id]) %>
+  <% if board&.board_states&.any? %>
+    <div class="form-group">
+      <%= form.label :board_state_id, "Status" %>
+      <%= form.select :board_state_id,
+            board.board_states.ordered.map { |s| [s.name, s.id] },
+            { include_blank: "— Backlog (no column) —", selected: issue.board_state_id || params[:board_state_id] } %>
+    </div>
+  <% else %>
+    <div class="form-group">
+      <%= form.label :status, "Status" %>
+      <%= form.select :status, [
+        ["Todo", Issue::STATUSES[:todo]],
+        ["In Progress", Issue::STATUSES[:in_progress]],
+        ["Done", Issue::STATUSES[:done]]
+      ], {} %>
+    </div>
+  <% end %>
+
+  <% project_id = issue.project_id || params[:project_id] %>
+  <% sprints = project_id ? Project.find_by(id: project_id)&.sprints&.where(status: [:planning, :active]) : [] %>
+  <% if sprints&.any? %>
+    <div class="form-group">
+      <%= form.label :sprint_id, "Sprint" %>
+      <%= form.select :sprint_id,
+            sprints.map { |s| [s.name, s.id] },
+            { include_blank: "— No sprint —", selected: issue.sprint_id } %>
+    </div>
+  <% end %>
+
+  <% project = Project.find_by(id: issue.project_id || params[:project_id]) %>
+  <% project_members = project ? project.members.order(:name) : [] %>
+  <div class="form-group">
+    <%= form.label :user_id, "Assignee" %>
+    <%= form.select :user_id,
+          project_members.map { |u| [u.name, u.id] },
+          { include_blank: "— Unassigned —", selected: issue.user_id },
+          style: "width: 100%;" %>
+  </div>
+
+  <%= form.hidden_field :board_id, value: issue.board_id || params[:board_id] %>
+  <%= form.hidden_field :project_id, value: project_id %>
+
+  <!-- Existing attachments (edit mode) -->
+  <% if issue.attachments.attached? %>
+    <div class="form-group">
+      <label style="font-size: 10px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--wire-dark);">Existing Attachments</label>
+      <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px;">
+        <% issue.attachments.each do |attachment| %>
+          <div style="position: relative; border: 1.5px solid var(--wire); border-radius: 2px; padding: 8px; font-size: 11px; background: var(--paper2); display: flex; align-items: center; gap: 8px;">
+            <% if attachment.content_type.start_with?("image/") %>
+              <%= image_tag rails_blob_path(attachment, disposition: "inline"), style: "width: 48px; height: 48px; object-fit: cover; border-radius: 2px;" %>
+            <% elsif attachment.content_type.start_with?("video/") %>
+              <span style="font-size: 18px;">🎬</span>
+            <% else %>
+              <span style="font-size: 18px;">📎</span>
+            <% end %>
+            <span style="max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink);"><%= attachment.filename %></span>
+            <label style="display: flex; align-items: center; gap: 4px; cursor: pointer; color: #ef4444; font-size: 10px; font-weight: 600; white-space: nowrap;">
+              <input type="checkbox" name="remove_attachment_ids[]" value="<%= attachment.id %>" style="width: 12px; height: 12px;">
+              Remove
+            </label>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- New attachments -->
+  <div class="form-group">
+    <%= form.label :attachments, "Attachments" %>
+    <label for="attachments-input" style="display: block; border: 1.5px dashed var(--wire); border-radius: 2px; padding: 16px; text-align: center; background: var(--paper2); cursor: pointer;">
+      <%= form.file_field :attachments, multiple: true,
+            accept: "image/*,video/*,application/pdf,.doc,.docx,.xls,.xlsx,.txt,.zip",
+            style: "display: none;",
+            id: "attachments-input" %>
+      <div id="attachment-drop-label" style="font-size: 11px; color: var(--wire-dark); pointer-events: none;">
+        Click to upload images, videos, or files <br>
+        <span style="font-size: 10px;">(JPG, PNG, GIF, MP4, PDF, DOC, etc.)</span>
+      </div>
+    </label>
+    <div id="attachment-preview-list" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;"></div>
+  </div>
+
+  <div class="form-actions">
+    <%= link_to "Cancel", issue.board.present? ? board_path(issue.board) : projects_path, class: "btn" %>
+    <%= form.submit form.object.new_record? ? "Create Issue" : "Update Issue", class: "btn primary" %>
+  </div>
+<% end %>
+
+<script>
+  (function() {
+    var input = document.getElementById("attachments-input");
+    var preview = document.getElementById("attachment-preview-list");
+    var label  = document.getElementById("attachment-drop-label");
+    if (!input) return;
+    input.addEventListener("change", function() {
+      preview.innerHTML = "";
+      var files = Array.from(input.files);
+      if (files.length > 0) {
+        label.innerHTML = files.length + " file" + (files.length > 1 ? "s" : "") + " selected";
+      }
+      files.forEach(function(file) {
+        var item = document.createElement("div");
+        item.style = "border: 1.5px solid var(--wire); border-radius: 2px; padding: 6px 8px; font-size: 10px; color: var(--ink); background: var(--paper2); display: flex; align-items: center; gap: 6px; max-width: 180px;";
+        if (file.type.startsWith("image/")) {
+          var img = document.createElement("img");
+          img.style = "width: 36px; height: 36px; object-fit: cover; border-radius: 2px; flex-shrink: 0;";
+          img.src = URL.createObjectURL(file);
+          item.appendChild(img);
+        } else if (file.type.startsWith("video/")) {
+          item.innerHTML = "<span style='font-size:18px;flex-shrink:0;'>🎬</span>";
+        } else {
+          item.innerHTML = "<span style='font-size:18px;flex-shrink:0;'>📎</span>";
+        }
+        var name = document.createElement("span");
+        name.textContent = file.name;
+        name.style = "overflow: hidden; text-overflow: ellipsis; white-space: nowrap;";
+        item.appendChild(name);
+        preview.appendChild(item);
+      });
+    });
+  })();
+</script>

@@ -1,0 +1,173 @@
+<style>
+  .board-actions-menu { position: relative; display: inline-block; }
+  .board-actions-menu .dropdown {
+    display: none; position: absolute; right: 0; top: calc(100% + 4px);
+    background: var(--paper); border: 1.5px solid var(--wire); border-radius: 3px;
+    min-width: 160px; z-index: 200; box-shadow: 0 4px 16px rgba(0,0,0,0.10);
+  }
+  .board-actions-menu.open .dropdown { display: block; }
+  .board-actions-menu .dropdown a,
+  .board-actions-menu .dropdown button {
+    display: block; width: 100%; text-align: left; padding: 9px 14px;
+    font-size: 11px; color: var(--ink); text-decoration: none; background: none;
+    border: none; border-bottom: 1px solid var(--wire); cursor: pointer;
+    box-sizing: border-box;
+  }
+  .board-actions-menu .dropdown a:last-child,
+  .board-actions-menu .dropdown button:last-child { border-bottom: none; }
+  .board-actions-menu .dropdown a:hover,
+  .board-actions-menu .dropdown button:hover { background: var(--paper2); }
+  .board-actions-menu .dropdown .danger-item { color: #ef4444; }
+</style>
+
+<div class="page-header">
+  <div>
+    <h1><%= @board.name %></h1>
+    <div class="board-breadcrumb" style="margin-top: 4px;">
+      <%= link_to @project.name, project_path(@project) %>
+      <span style="color: var(--wire-dark);">/</span>
+      <span style="color: var(--ink); font-weight: 600;"><%= @board.name %></span>
+    </div>
+  </div>
+  <div class="page-header-actions">
+    <% if @active_sprint %>
+      <span class="sprint-badge active" style="align-self: center;">Active: <%= @active_sprint.name %></span>
+      <%= link_to "View Sprint", sprint_path(@active_sprint), class: "btn" %>
+      <%= link_to "Complete Sprint", complete_sprint_path(@active_sprint),
+            data: { turbo_method: :patch, turbo_confirm: "Complete sprint \"#{@active_sprint.name}\"? It has #{@active_sprint.issues.count} issue(s). This will generate a report." },
+            class: "btn" %>
+    <% elsif @planning_sprint %>
+      <span class="sprint-badge planning" style="align-self: center;">Ready: <%= @planning_sprint.name %></span>
+      <%= link_to "Start Sprint", start_sprint_path(@planning_sprint),
+            data: { turbo_method: :patch, turbo_confirm: "Start sprint \"#{@planning_sprint.name}\"?" },
+            class: "btn accent" %>
+    <% else %>
+      <%= link_to "Start Sprint", new_project_sprint_path(@project, board_id: @board.id), class: "btn accent" %>
+    <% end %>
+
+    <%= link_to "New Issue", new_issue_path(board_id: @board.id), class: "btn accent" %>
+
+    <!-- Actions dropdown -->
+    <div class="board-actions-menu" id="board-actions-menu">
+      <button class="btn" onclick="document.getElementById('board-actions-menu').classList.toggle('open'); event.stopPropagation();" style="display: flex; align-items: center; gap: 4px;">
+        Actions <span style="font-size: 9px;">▾</span>
+      </button>
+      <div class="dropdown">
+        <%= link_to "Manage States", board_board_states_path(@board) %>
+        <%= link_to "Edit Board", edit_board_path(@board) %>
+        <%= link_to "Delete Board", @board,
+              data: { turbo_method: :delete, turbo_confirm: "Delete this board? All issues will be removed." },
+              class: "danger-item" %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Close dropdown when clicking outside
+  document.addEventListener("click", function() {
+    var menu = document.getElementById("board-actions-menu");
+    if (menu) menu.classList.remove("open");
+  });
+</script>
+
+<% active_tab = params[:tab] == "backlog" ? "backlog" : "board" %>
+
+<div style="display: flex; gap: 0; border-bottom: 1.5px solid var(--wire); margin-bottom: 24px;">
+  <%= link_to board_path(@board, tab: "board"),
+        style: "padding: 10px 20px; font-size: 11px; font-weight: 600; text-decoration: none; border-bottom: 2px solid #{active_tab == 'board' ? 'var(--ink)' : 'transparent'}; color: #{active_tab == 'board' ? 'var(--ink)' : 'var(--wire-dark)'}; margin-bottom: -1.5px;" do %>
+    Board
+  <% end %>
+  <%= link_to board_path(@board, tab: "backlog"),
+        style: "padding: 10px 20px; font-size: 11px; font-weight: 600; text-decoration: none; border-bottom: 2px solid #{active_tab == 'backlog' ? 'var(--ink)' : 'transparent'}; color: #{active_tab == 'backlog' ? 'var(--ink)' : 'var(--wire-dark)'}; margin-bottom: -1.5px;" do %>
+    Backlog <span style="font-weight: 400; color: var(--wire-dark);">(<%= @backlog_issues.count %>)</span>
+  <% end %>
+</div>
+
+<% if active_tab == "board" %>
+
+  <div class="kanban" data-controller="drag">
+    <% @board.board_states.ordered.each do |state| %>
+      <div class="kanban-column">
+        <div class="kanban-header">
+          <div class="kanban-title">
+            <div class="kanban-status-dot" style="background: <%= state.color %>;"></div>
+            <%= state.name %>
+          </div>
+          <div class="kanban-count"><%= @board.issues.where(board_state_id: state.id).count %></div>
+        </div>
+        <div class="kanban-cards" data-drag-target="column" data-board-state-id="<%= state.id %>">
+          <% @board.issues.where(board_state_id: state.id).each do |issue| %>
+            <div class="kanban-card" data-issue-id="<%= issue.id %>">
+              <%= link_to issue_path(issue), class: "kanban-card-link", draggable: "false", style: "display:block; text-decoration:none; color:inherit;" do %>
+                <div class="kanban-card-title"><%= issue.title %></div>
+                <div class="kanban-card-desc"><%= truncate(issue.description.to_plain_text, length: 60) %></div>
+                <div class="kanban-card-footer">
+                  <div class="kanban-card-avatar" style="background: var(--accent);"><%= issue.user&.name&.first %></div>
+                </div>
+              <% end %>
+              <%= form_with url: move_issue_path(issue), method: :patch, style: "margin: 0;" do |f| %>
+                <%= f.hidden_field :board_state_id, value: "" %>
+                <%= f.submit "↙ Backlog",
+                      style: "width: 100%; font-size: 9px; padding: 4px; background: none; border: none; border-top: 1px solid var(--wire); color: var(--wire-dark); cursor: pointer; text-align: center; letter-spacing: 0.04em;",
+                      data: @active_sprint ? { turbo_confirm: "This issue is in an active sprint (#{@active_sprint.name}). Moving it to backlog will remove it from the sprint. Continue?" } : {} %>
+              <% end %>
+            </div>
+          <% end %>
+          <div class="kanban-add-card" onclick="window.location.href='<%= new_issue_path(board_id: @board.id, board_state_id: state.id) %>'">
+            <div class="kanban-add-icon">+</div>
+            <div class="kanban-add-text">Add issue</div>
+          </div>
+        </div>
+      </div>
+    <% end %>
+  </div>
+
+<% else %>
+
+  <% if @backlog_issues.empty? %>
+    <div style="text-align: center; padding: 60px 20px; color: var(--wire-dark);">
+      <p style="font-size: 13px; margin-bottom: 12px;">Backlog is empty.</p>
+      <%= link_to "Add an issue to backlog", new_issue_path(board_id: @board.id), class: "btn accent" %>
+    </div>
+  <% else %>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+      <p style="font-size: 11px; color: var(--wire-dark); margin: 0;">
+        <%= @backlog_issues.count %> item<%= @backlog_issues.count == 1 ? "" : "s" %> in backlog — select a column to move items onto the board.
+      </p>
+      <%= link_to "+ Add issue", new_issue_path(board_id: @board.id), class: "btn", style: "font-size: 10px;" %>
+    </div>
+
+    <div style="border: 1.5px solid var(--wire); border-radius: 2px; overflow: hidden;">
+      <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+        <thead>
+          <tr style="background: var(--paper2); border-bottom: 1.5px solid var(--wire);">
+            <th style="padding: 10px 14px; text-align: left; font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase;">Issue</th>
+            <th style="padding: 10px 14px; text-align: left; font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase;">Assignee</th>
+            <th style="padding: 10px 14px; text-align: left; font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase;">Move to Board</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @backlog_issues.each do |issue| %>
+            <tr style="border-bottom: 1px solid var(--wire);">
+              <td style="padding: 10px 14px;">
+                <%= link_to issue.title, issue_path(issue), class: "link" %>
+              </td>
+              <td style="padding: 10px 14px;"><%= issue.user&.name || "—" %></td>
+              <td style="padding: 10px 14px;">
+                <%= form_with url: move_issue_path(issue), method: :patch, style: "display: flex; gap: 6px; align-items: center;" do |f| %>
+                  <%= f.select :board_state_id,
+                        @board.board_states.ordered.map { |s| [s.name, s.id] },
+                        { selected: @board.board_states.ordered.first&.id },
+                        style: "font-size: 11px; padding: 4px 6px; border: 1px solid var(--wire); background: var(--paper); color: var(--ink); border-radius: 2px;" %>
+                  <%= f.submit "Move →", style: "font-size: 10px; padding: 4px 10px; background: var(--ink); color: var(--paper); border: none; border-radius: 2px; cursor: pointer;" %>
+                <% end %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  <% end %>
+
+<% end %>

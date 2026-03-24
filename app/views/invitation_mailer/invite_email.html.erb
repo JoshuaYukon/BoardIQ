@@ -1,0 +1,19 @@
+<p style="font-size: 15px; margin-bottom: 20px;">
+  <strong><%= @invited_by.name %></strong> has invited you to join the project
+  <strong><%= @project.name %></strong> on BoardIQ.
+</p>
+
+<p style="color: #666; margin-bottom: 28px;">
+  BoardIQ is a smart task and project management board that combines kanban-style
+  tracking with AI assistance.
+</p>
+
+<p style="margin-bottom: 32px;">
+  <%= link_to "Accept Invitation", @accept_url,
+        style: "display: inline-block; background: #d4541a; color: white; padding: 12px 24px; border-radius: 3px; text-decoration: none; font-weight: 600; font-size: 14px;" %>
+</p>
+
+<p style="font-size: 12px; color: #999;">
+  Or copy this link into your browser:<br>
+  <span style="color: #666;"><%= @accept_url %></span>
+</p>

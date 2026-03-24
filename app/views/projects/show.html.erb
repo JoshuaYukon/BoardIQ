@@ -1,0 +1,176 @@
+<div class="page-header">
+  <div>
+    <h1><%= @project.name %></h1>
+    <p class="text-muted"><%= @project.description %></p>
+  </div>
+  <div class="page-header-actions">
+    <%= link_to "Edit", edit_project_path(@project), class: "btn" %>
+    <%= link_to "Delete", @project, data: { turbo_method: :delete, turbo_confirm: "Are you sure?" }, class: "btn danger" %>
+  </div>
+</div>
+
+<div class="page-header" style="margin-bottom: 24px;">
+  <h2>Boards</h2>
+  <div class="page-header-actions">
+    <%= link_to "New Board", new_board_path(project_id: @project.id), class: "btn accent" %>
+  </div>
+</div>
+
+<div class="board-grid">
+  <% @project.boards.each do |board| %>
+    <div class="board-card" onclick="window.location.href='<%= board_path(board) %>'">
+      <div class="board-card-name"><%= board.name %></div>
+      <div class="board-card-meta"><%= board.created_at.strftime("%b %d, %Y") %></div>
+      <div class="board-card-stats">
+        <% board.board_states.ordered.each do |state| %>
+          <span class="stat-chip" style="background: <%= state.color %>;"><%= board.issues.where(board_state_id: state.id).count %> <%= state.name %></span>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+
+  <div class="board-card new-board" onclick="window.location.href='<%= new_board_path(project_id: @project.id) %>'">
+    <div class="new-board-icon">+</div>
+    <div class="new-board-text">New Board</div>
+  </div>
+</div>
+
+<!-- AI Priority Suggestions -->
+<div data-controller="ai" style="margin-top: 32px;">
+  <button class="ai-btn"
+          data-action="click->ai#request"
+          data-url="/ai/suggest_priority"
+          data-params='{"project_id": <%= @project.id %>}'>
+    ✦ AI: Suggest Issue Priorities
+  </button>
+  <div class="ai-panel" style="display: none; margin-top: 12px;">
+    <div class="ai-panel-header">✦ Suggested Priority Order</div>
+    <div class="ai-response" data-ai-target="result"></div>
+  </div>
+</div>
+
+<div class="page-header" style="margin-top: 32px; margin-bottom: 16px;">
+  <h2>Sprints</h2>
+  <div class="page-header-actions">
+    <%= link_to "View All Sprints", project_sprints_path(@project), class: "btn" %>
+    <%= link_to "New Sprint", new_project_sprint_path(@project), class: "btn accent" %>
+  </div>
+</div>
+
+<% active_sprints = @project.sprints.where(status: :active) %>
+<% if active_sprints.any? %>
+  <% active_sprints.each do |sprint| %>
+    <div class="sprint-card">
+      <div class="sprint-card-header">
+        <div>
+          <h3 style="margin-bottom: 4px;"><%= link_to sprint.name, sprint_path(sprint) %></h3>
+          <p class="text-muted"><%= sprint.goal %></p>
+        </div>
+        <span class="sprint-badge active">Active</span>
+      </div>
+      <div style="font-size: 10px; color: var(--wire-dark);"><%= sprint.issues.count %> issues</div>
+    </div>
+  <% end %>
+<% else %>
+  <p class="text-muted" style="font-size: 11px;">No active sprint. <%= link_to "Create one", new_project_sprint_path(@project), class: "link" %>.</p>
+<% end %>
+
+<div class="page-header" style="margin-top: 32px; margin-bottom: 16px;">
+  <h2>Recent Activity</h2>
+</div>
+
+<div style="max-width: 640px;">
+  <% recent_activities = @project.activities.recent %>
+  <% if recent_activities.empty? %>
+    <p class="text-muted" style="font-size: 11px;">No activity yet.</p>
+  <% else %>
+    <% recent_activities.each do |activity| %>
+      <div class="activity-item">
+        <div class="activity-dot"></div>
+        <div style="flex: 1;">
+          <span style="font-weight: 600;"><%= activity.user&.name || "Someone" %></span>
+          <%= activity.action %>
+          <% if activity.description.present? %>
+            — <em><%= activity.description %></em>
+          <% end %>
+          <div class="activity-time"><%= time_ago_in_words(activity.created_at) %> ago</div>
+        </div>
+      </div>
+    <% end %>
+  <% end %>
+</div>
+
+<div class="page-header" style="margin-top: 32px; margin-bottom: 16px;">
+  <h2>Team Members</h2>
+</div>
+
+<div style="max-width: 560px;">
+
+  <!-- Current members -->
+  <% memberships = @project.project_memberships.includes(:user).order(:created_at) %>
+  <% if memberships.any? %>
+    <div style="border: 1.5px solid var(--wire); border-radius: 2px; overflow: hidden; margin-bottom: 20px;">
+      <% memberships.each do |membership| %>
+        <div style="display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-bottom: 1px solid var(--wire); font-size: 11px;">
+          <div style="width: 28px; height: 28px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 12px; flex-shrink: 0;">
+            <%= membership.user.name.first.upcase %>
+          </div>
+          <div style="flex: 1;">
+            <div style="font-weight: 600;"><%= membership.user.name %></div>
+            <div style="color: var(--wire-dark); font-size: 10px;"><%= membership.user.email %></div>
+          </div>
+          <span style="font-size: 10px; color: var(--wire-dark); background: var(--paper2); border: 1px solid var(--wire); border-radius: 2px; padding: 2px 6px;"><%= membership.role %></span>
+          <% if membership.role != 'owner' %>
+            <%= link_to "Remove", project_project_membership_path(@project, membership),
+                  data: { turbo_method: :delete, turbo_confirm: "Remove #{membership.user.name} from this project?" },
+                  style: "font-size: 10px; color: #ef4444; text-decoration: none;" %>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+
+  <!-- Add existing user by name/email -->
+  <div style="margin-bottom: 20px;">
+    <div style="font-size: 10px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--wire-dark); margin-bottom: 8px;">Add Existing User</div>
+    <%= form_with url: project_project_memberships_path(@project), method: :post, local: true do |f| %>
+      <div style="display: flex; gap: 8px;">
+        <%= text_field_tag :query, nil, placeholder: "Name or email of existing user",
+              style: "flex: 1; padding: 8px 10px; border: 1.5px solid var(--wire); border-radius: 2px; font-size: 11px; background: var(--paper);" %>
+        <%= submit_tag "Add", class: "btn accent", style: "white-space: nowrap;" %>
+      </div>
+    <% end %>
+  </div>
+
+  <!-- Invite by email -->
+  <div>
+    <div style="font-size: 10px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--wire-dark); margin-bottom: 8px;">Invite by Email</div>
+    <%= form_with url: project_invitations_path(@project), method: :post, local: true do |f| %>
+      <div style="display: flex; gap: 8px;">
+        <%= f.email_field :email, placeholder: "colleague@example.com",
+              style: "flex: 1; padding: 8px 10px; border: 1.5px solid var(--wire); border-radius: 2px; font-size: 11px; background: var(--paper);" %>
+        <%= f.submit "Send Invite", class: "btn", style: "white-space: nowrap;" %>
+      </div>
+    <% end %>
+
+    <% pending_invites = @project.project_invitations.pending.order(created_at: :desc) %>
+    <% if pending_invites.any? %>
+      <div style="margin-top: 12px; font-size: 11px;">
+        <div style="font-size: 10px; color: var(--wire-dark); margin-bottom: 6px;">Pending invites</div>
+        <% pending_invites.each do |inv| %>
+          <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--wire);">
+            <span><%= inv.email %></span>
+            <span style="color: var(--wire-dark); font-size: 10px;">Sent <%= time_ago_in_words(inv.created_at) %> ago</span>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+
+</div>
+
+<div class="divider" style="margin-top: 32px;"></div>
+
+<p class="text-muted" style="margin-top: 16px;">
+  <%= link_to "← Back to Projects", projects_path, class: "link" %>
+</p>
