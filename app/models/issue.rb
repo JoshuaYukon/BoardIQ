@@ -1,6 +1,6 @@
 class Issue < ApplicationRecord
   belongs_to :project
-  belongs_to :user
+  belongs_to :user, optional: true
   belongs_to :board
   belongs_to :board_state, optional: true
   belongs_to :sprint, optional: true
